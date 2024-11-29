@@ -32,6 +32,29 @@ def record_current_answer(answer, current_question_id, session):
     '''
     Validates and stores the answer for the current question to django session.
     '''
+
+    score = session.get("score") if session.get("score") else 0
+
+    if not current_question_id:
+        return True,""
+    
+    try:
+        current_question_by_index = PYTHON_QUESTION_LIST[current_question_id]
+    except IndexError:
+        return False,"something went wrong contact hr"
+
+    options = current_question_by_index["options"]
+
+    if answer not in options:
+        return False,"plese enter valid options"
+    
+    if answer != current_question_by_index["answer"]:
+        return True,""
+    
+    session[f"current_question_answer"] = answer
+    session['score'] = score + 1
+    
+    session.save()
     return True, ""
 
 
@@ -40,7 +63,19 @@ def get_next_question(current_question_id):
     Fetches the next question from the PYTHON_QUESTION_LIST based on the current_question_id.
     '''
 
-    return "dummy question", -1
+    if current_question_id is None:
+        current_question_id = -1
+
+
+    try:
+        next_question_id = current_question_id + 1
+        next_question = PYTHON_QUESTION_LIST[next_question_id]["question_text"]
+        options = PYTHON_QUESTION_LIST[next_question_id]["options"]
+        next_question = next_question + "\n options are \n" + ','.join(options)
+    except Exception as e:
+        return "", -1
+
+    return next_question, next_question_id
 
 
 def generate_final_response(session):
@@ -49,4 +84,18 @@ def generate_final_response(session):
     by the user for questions in the PYTHON_QUESTION_LIST.
     '''
 
-    return "dummy result"
+    current_question_id = session.get("current_question_id")
+    current_question_answer = session.get("current_question_answer")
+
+    if not current_question_id:
+        return ""
+
+    true_answer = PYTHON_QUESTION_LIST[current_question_id]['answer']
+
+    result = ""
+    score = session.get("score")
+
+    result = "thanks for taking the quiz"
+
+
+    return f"{result} your total score is {score}"
